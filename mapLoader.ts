@@ -10,7 +10,7 @@ import { EntityLobbyBehaviour } from "../../../lib/protocol/entities/lobbyBehavi
 import { PlayerData } from "../../../lib/protocol/entities/gameData/types";
 import { UpdateGameDataPacket } from "../../../lib/protocol/packets/rpc";
 import { EntityPlayer } from "../../../lib/protocol/entities/player";
-import { RPCPacket } from "../../../lib/protocol/packets/gameData";
+import { RpcPacket } from "../../../lib/protocol/packets/gameData";
 import { DisconnectReason, Vector2 } from "../../../lib/types";
 import { InternalPlayer } from "../../../lib/player";
 import { InternalLobby } from "../../../lib/lobby";
@@ -71,8 +71,8 @@ export function initialize(): void {
     for (let i = 0; i < lobby.getPlayers().length; i++) {
       const player = lobby.getPlayers()[i];
 
-      con.write(new GameDataPacket([
-        new RPCPacket(lobby.getGameData()!.gameData.netId, new UpdateGameDataPacket([
+      con.writeReliable(new GameDataPacket([
+        new RpcPacket(lobby.getGameData()!.gameData.netId, new UpdateGameDataPacket([
           new PlayerData(
             (player as InternalPlayer).entity.playerControl.playerId,
             "",
@@ -89,8 +89,8 @@ export function initialize(): void {
       ], lobby.getCode()));
     }
 
-    con.write(new RemovePlayerPacket(lobby.getCode(), alwaysInGameClient, FakeClientId.ServerAsHost));
-    con.write(new RemovePlayerPacket(lobby.getCode(), con.id, FakeClientId.ServerAsHost));
+    con.writeReliable(new RemovePlayerPacket(lobby.getCode(), alwaysInGameClient, FakeClientId.ServerAsHost, DisconnectReason.serverRequest()));
+    con.writeReliable(new RemovePlayerPacket(lobby.getCode(), con.id, FakeClientId.ServerAsHost, DisconnectReason.serverRequest()));
     (lobby as InternalLobby).ignoredNetIds.push(...((evt.getPlayer()! as InternalPlayer).entity.innerNetObjects.map(ino => ino.netId)));
     (lobby as InternalLobby).clearPlayers();
     lobby.getGameData()!.despawn();
@@ -147,7 +147,7 @@ export function initialize(): void {
       gameData.gameData.updateGameData([playerData], lobby.getConnections());
 
       setTimeout(() => {
-        (lobby as InternalLobby).setActingHost(con);
+        con.setActingHost(true);
       }, 200);
     }, 200);
   });
@@ -183,7 +183,7 @@ export function initialize(): void {
 
     evt.getPlayer().setName("");
 
-    connection.isActingHost = false;
+    connection.setActingHost(false);
 
     const lobbyBehaviour = lobby.getLobbyBehaviour();
 
@@ -254,7 +254,7 @@ export function initialize(): void {
         const apiPlayer = apiPlayers[k] as InternalPlayer;
 
         apiPlayer.entity.playerControl.playerId = 254;
-        lobby.getConnections()[0].write(
+        lobby.getConnections()[0].writeReliable(
           new GameDataPacket([
             apiPlayer.entity.playerControl.getData(),
           ], lobby.getCode()),
