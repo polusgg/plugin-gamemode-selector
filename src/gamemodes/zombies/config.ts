@@ -1,6 +1,6 @@
-import { TextComponent } from "../../../../../lib/api/text";
+import { TextComponent } from "@nodepolus/framework/src/api/text";
+import { Vector2 } from "@nodepolus/framework/src/types";
 import { GamemodeConfig } from "../../types";
-import { Vector2 } from "../../../../../lib/types";
 
 export const config: GamemodeConfig = {
   id: 0,

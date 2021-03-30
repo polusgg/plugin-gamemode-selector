@@ -2,25 +2,25 @@
  * This file loads the Polus map when creating a room and sets the lobby metatag "gamemode"
  */
 
-import { FakeClientId, PlayerColor, PlayerHat, PlayerPet, PlayerSkin, SpawnFlag } from "../../../lib/types/enums";
-import { GameDataPacket, RemovePlayerPacket } from "../../../lib/protocol/packets/root";
-import { EntityPolusShipStatus } from "../../../lib/protocol/entities/polusShipStatus";
-import { EntitySkeldShipStatus } from "../../../lib/protocol/entities/skeldShipStatus";
-import { EntityLobbyBehaviour } from "../../../lib/protocol/entities/lobbyBehaviour";
-import { PlayerData } from "../../../lib/protocol/entities/gameData/types";
-import { UpdateGameDataPacket } from "../../../lib/protocol/packets/rpc";
-import { EntityPlayer } from "../../../lib/protocol/entities/player";
-import { RpcPacket } from "../../../lib/protocol/packets/gameData";
-import { DisconnectReason, Vector2 } from "../../../lib/types";
-import { InternalPlayer } from "../../../lib/player";
-import { InternalLobby } from "../../../lib/lobby";
-import { InternalHost } from "../../../lib/host";
-import { Server } from "../../../lib/server";
-import { Game } from "../../../lib/api/game";
+import { FakeClientId, PlayerColor, PlayerHat, PlayerPet, PlayerSkin, SpawnFlag } from "@nodepolus/framework/src/types/enums";
+import { GameDataPacket, RemovePlayerPacket } from "@nodepolus/framework/src/protocol/packets/root";
+import { EntityPolusShipStatus } from "@nodepolus/framework/src/protocol/entities/shipStatus/polus";
+import { EntitySkeldShipStatus } from "@nodepolus/framework/src/protocol/entities/shipStatus/skeld";
+import { EntityLobbyBehaviour } from "@nodepolus/framework/src/protocol/entities/lobbyBehaviour";
+import { PlayerData } from "@nodepolus/framework/src/protocol/entities/gameData/types";
+import { UpdateGameDataPacket } from "@nodepolus/framework/src/protocol/packets/rpc";
+import { EntityPlayer } from "@nodepolus/framework/src/protocol/entities/player";
+import { RpcPacket } from "@nodepolus/framework/src/protocol/packets/gameData";
+import { DisconnectReason, Vector2 } from "@nodepolus/framework/src/types";
+import { Player } from "@nodepolus/framework/src/player";
+import { Lobby } from "@nodepolus/framework/src/lobby";
+import { Host } from "@nodepolus/framework/src/host";
+import { Server } from "@nodepolus/framework/src/server";
+import { Game } from "@nodepolus/framework/src/api/game";
 import { BaseGamemode } from "./baseGamemode";
 import { sayPortal } from "./sayPortal";
-import { PlayerInstance } from "../../../lib/api/player";
-import { EntityGameData } from "../../../lib/protocol/entities/gameData";
+import { PlayerInstance } from "@nodepolus/framework/src/api/player";
+import { EntityGameData } from "@nodepolus/framework/src/protocol/entities/gameData";
 
 declare const server: Server;
 declare const gamemodes: BaseGamemode[];
@@ -31,9 +31,9 @@ export function initialize(): void {
   const alwaysInGameClient = server.getNextConnectionId();
   const logger = server.getLogger().child("Polus.gg");
 
-  server.on("meeting.started", evt => evt.cancel(evt.getGame().lobby.getMeta("gamemode") === undefined));
-  server.on("game.ended", evt => evt.cancel(evt.getGame().lobby.getMeta("gamemode") === undefined));
-  server.on("room.sabotaged", evt => evt.cancel(evt.getGame().lobby.getMeta("gamemode") === undefined));
+  server.on("meeting.started", evt => { evt.cancel(evt.getGame().getLobby().getMeta("gamemode") === undefined) });
+  server.on("game.ended", evt => { evt.cancel(evt.getGame().getLobby().getMeta("gamemode") === undefined) });
+  server.on("room.sabotaged", evt => { evt.cancel(evt.getGame().getLobby().getMeta("gamemode") === undefined) });
 
   server.on("player.position.updated", evt => {
     if (evt.getPlayer().getLobby().hasMeta("gamemode")) {
@@ -47,7 +47,7 @@ export function initialize(): void {
     }
 
     const lobby = evt.getPlayer().getLobby();
-    const internalHost = (lobby.getHostInstance() as InternalHost);
+    const internalHost = (lobby.getHostInstance() as Host);
 
     lobby.setMeta("gamemode", gamemode.config.id);
     gamemode.selected(lobby);
@@ -72,9 +72,9 @@ export function initialize(): void {
       const player = lobby.getPlayers()[i];
 
       con.writeReliable(new GameDataPacket([
-        new RpcPacket(lobby.getGameData()!.gameData.netId, new UpdateGameDataPacket([
+        new RpcPacket(lobby.getSafeGameData().getGameData().getNetId(), new UpdateGameDataPacket([
           new PlayerData(
-            (player as InternalPlayer).entity.playerControl.playerId,
+            (player as Player).getEntity().getPlayerControl().getPlayerId(),
             "",
             PlayerColor.Red,
             PlayerHat.None,
@@ -90,9 +90,9 @@ export function initialize(): void {
     }
 
     con.writeReliable(new RemovePlayerPacket(lobby.getCode(), alwaysInGameClient, FakeClientId.ServerAsHost, DisconnectReason.serverRequest()));
-    con.writeReliable(new RemovePlayerPacket(lobby.getCode(), con.id, FakeClientId.ServerAsHost, DisconnectReason.serverRequest()));
-    (lobby as InternalLobby).ignoredNetIds.push(...((evt.getPlayer()! as InternalPlayer).entity.innerNetObjects.map(ino => ino.netId)));
-    (lobby as InternalLobby).clearPlayers();
+    con.writeReliable(new RemovePlayerPacket(lobby.getCode(), con.getId(), FakeClientId.ServerAsHost, DisconnectReason.serverRequest()));
+    (lobby as Lobby).ignoredNetIds.push(...((evt.getPlayer()! as Player).getEntity().getObjects().map(ino => ino.getNetId())));
+    (lobby as Lobby).clearPlayers();
     lobby.getGameData()!.despawn();
 
     setTimeout(() => {
@@ -102,9 +102,9 @@ export function initialize(): void {
 
       const player = new EntityPlayer(
         lobby,
-        con.id,
+        con.getId(),
         internalHost.getNextNetId(),
-        (evt.getPlayer()! as InternalPlayer).entity.playerControl.playerId,
+        (evt.getPlayer()! as Player).getEntity().getPlayerControl().getPlayerId(),
         internalHost.getNextNetId(),
         internalHost.getNextNetId(),
         5,
@@ -114,7 +114,7 @@ export function initialize(): void {
       );
 
       lobby.spawnPlayer(player, new PlayerData(
-        (evt.getPlayer()! as InternalPlayer).entity.playerControl.playerId,
+        (evt.getPlayer()! as Player).getEntity().getPlayerControl().getPlayerId(),
         "",
         PlayerColor.Red,
         PlayerHat.None,
@@ -126,12 +126,12 @@ export function initialize(): void {
         [],
       ));
 
-      player.playerControl.isNew = false;
+      player.getPlayerControl().setNewPlayer(false);
 
       const player2 = evt.getPlayer();
 
-      const playerData = gameData.gameData.players.find(d => {
-        if (d.id == (player2 as InternalPlayer).entity.playerControl.playerId) {
+      const playerData = [...gameData.getGameData().getPlayers().values()].find(d => {
+        if (d.getId() == (player2 as Player).getEntity().getPlayerControl().getPlayerId()) {
           return true;
         }
 
@@ -142,9 +142,9 @@ export function initialize(): void {
         throw new Error("Player has no playerData");
       }
 
-      playerData.isImpostor = false;
+      playerData.setImpostor(false);
 
-      gameData.gameData.updateGameData([playerData], lobby.getConnections());
+      gameData.getGameData().updateGameData([playerData], lobby.getConnections());
 
       setTimeout(() => {
         con.setActingHost(true);
@@ -175,7 +175,7 @@ export function initialize(): void {
 
     const lobby = evt.getLobby();
     const connection = evt.getPlayer().getConnection();
-    const internalHost = lobby.getHostInstance() as InternalHost;
+    const internalHost = lobby.getHostInstance() as Host;
 
     if (!connection) {
       throw new Error("No connection found for player");
@@ -205,7 +205,7 @@ export function initialize(): void {
 
     lobby.setShipStatus(shipStatus);
 
-    (lobby as InternalLobby).setGame(new Game(lobby));
+    (lobby as Lobby).setGame(new Game(lobby));
 
     for (let i = 0; i < gamemodes.length; i++) {
       const element = gamemodes[i];
@@ -232,7 +232,7 @@ export function initialize(): void {
           SpawnFlag.None,
         );
 
-        customEntityPlayer.playerControl.isNew = false;
+        customEntityPlayer.getPlayerControl().setNewPlayer(false);
 
         apiPlayers[j] = lobby.spawnPlayer(customEntityPlayer, new PlayerData(
           playerId,
@@ -251,12 +251,12 @@ export function initialize(): void {
       await wait(55);
 
       for (let k = 0; k < apiPlayers.length; k++) {
-        const apiPlayer = apiPlayers[k] as InternalPlayer;
+        const apiPlayer = apiPlayers[k] as Player;
 
-        apiPlayer.entity.playerControl.playerId = 254;
+        apiPlayer.getEntity().getPlayerControl().setPlayerId(254);
         lobby.getConnections()[0].writeReliable(
           new GameDataPacket([
-            apiPlayer.entity.playerControl.getData(),
+            apiPlayer.getEntity().getPlayerControl().serializeData(),
           ], lobby.getCode()),
         );
       }

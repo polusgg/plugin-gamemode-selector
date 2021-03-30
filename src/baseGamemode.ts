@@ -1,7 +1,7 @@
 import Emittery from "emittery";
-import { LobbyInstance } from "../../../lib/api/lobby";
-import { Logger } from "../../../lib/logger";
-import { Server } from "../../../lib/server";
+import { LobbyInstance } from "@nodepolus/framework/src/api/lobby";
+import { Logger } from "@nodepolus/framework/src/logger";
+import { Server } from "@nodepolus/framework/src/server";
 import { GamemodeConfig } from "./types";
 
 declare const server: Server;
@@ -11,7 +11,7 @@ export type GamemodeEvents = {
   example: boolean;
 };
 
-export abstract class BaseGamemode extends Emittery.Typed<GamemodeEvents> {
+export abstract class BaseGamemode extends Emittery<GamemodeEvents> {
   public readonly server: Server = server;
   public readonly logger: Logger;
   public enabledLobbies: LobbyInstance[] = [];

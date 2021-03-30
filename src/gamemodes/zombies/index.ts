@@ -1,7 +1,7 @@
+import { PlayerPositionUpdatedEvent } from "@nodepolus/framework/src/api/events/player";
+import { LobbyInstance } from "@nodepolus/framework/src/api/lobby";
 import { BaseGamemode } from "../../baseGamemode";
 import { config } from "./config";
-import { PlayerPositionUpdatedEvent } from "../../../../../lib/api/events/player";
-import { LobbyInstance } from "../../../../../lib/api/lobby";
 
 export default class ZombiesGamemode extends BaseGamemode {
   constructor() {

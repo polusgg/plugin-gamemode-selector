@@ -1,6 +1,6 @@
-import { Server } from "../../../lib/server";
-import { getGamemodes } from "./gamemodeLoader";
-import * as mapLoader from "./mapLoader";
+import { Server } from "@nodepolus/framework/src/server";
+import { getGamemodes } from "./src/gamemodeLoader";
+import * as mapLoader from "./src/mapLoader";
 
 declare const server: Server;
 

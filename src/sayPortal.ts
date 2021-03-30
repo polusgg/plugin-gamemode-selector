@@ -1,5 +1,5 @@
-import { TextComponent } from "../../../lib/api/text";
-import { Vector2 } from "../../../lib/types";
+import { TextComponent } from "@nodepolus/framework/src/api/text";
+import { Vector2 } from "@nodepolus/framework/src/types";
 
 export function sayPortal(_name: string): {
   name: string;

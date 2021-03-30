@@ -1,5 +1,5 @@
-import { LobbyInstance } from "../../../lib/api/lobby";
-import { Vector2 } from "../../../lib/types";
+import { LobbyInstance } from "@nodepolus/framework/src/api/lobby";
+import { Vector2 } from "@nodepolus/framework/src/types";
 
 export type GamemodeConfig = {
   id: number;
